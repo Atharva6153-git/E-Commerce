@@ -34,6 +34,56 @@ app.use(
   })
 );
 
+// --- PROTECTED ROUTE ---
+// Forward to Cart Service. Requires valid JWT.
+app.use(
+  '/api/cart',
+  verifyToken,
+  createProxyMiddleware({
+    target: process.env.CART_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: { '^/api/cart': '/cart' },
+  })
+);
+
+// --- PROTECTED ROUTE ---
+// Forward to Order Service. Requires valid JWT.
+app.use(
+  '/api/orders',
+  verifyToken,
+  createProxyMiddleware({
+    target: process.env.ORDER_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: { '^/api/orders': '/orders' },
+  })
+);
+
+// --- PROTECTED ROUTE ---
+// Forward to Payment Service. Requires valid JWT.
+app.use(
+  '/api/payment',
+  verifyToken,
+  createProxyMiddleware({
+    target: process.env.PAYMENT_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: { '^/api/payment': '/payment' },
+  })
+);
+
+// --- PROTECTED ROUTE ---
+// Forward to Notification Service. Requires valid JWT.
+// Notifications might also need to expose socket.io, so we enable ws proxy.
+app.use(
+  '/api/notifications',
+  verifyToken,
+  createProxyMiddleware({
+    target: process.env.NOTIFICATION_SERVICE_URL,
+    changeOrigin: true,
+    ws: true, // proxy websockets
+    pathRewrite: { '^/api/notifications': '/notifications' },
+  })
+);
+
 // --- PROTECTED TEST ROUTE ---
 // This proves the gateway can verify a JWT issued by Auth Service.
 // Later, other protected routes (cart, orders, etc.) will use this same pattern.
