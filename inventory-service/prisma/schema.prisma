@@ -1,0 +1,35 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// One row per product. reservedStock = stock currently locked by pending orders.
+// Available stock = totalStock - reservedStock (always computed, never stored directly).
+model Stock {
+  id            String   @id @default(uuid())
+  productId     String   @unique
+  totalStock    Int
+  reservedStock Int      @default(0)
+  updatedAt     DateTime @updatedAt
+  createdAt     DateTime @default(now())
+}
+
+// One row per (order, product) reservation. This is the audit trail that
+// makes the saga pattern debuggable — you can see exactly what happened
+// to every reservation: PENDING -> CONFIRMED or PENDING -> RELEASED.
+model Reservation {
+  id        String   @id @default(uuid())
+  orderId   String
+  productId String
+  quantity  Int
+  status    String   @default("PENDING") // PENDING | CONFIRMED | RELEASED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([productId])
+}

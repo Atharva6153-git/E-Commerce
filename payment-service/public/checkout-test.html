@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E-ShopX - One-Click Checkout Demo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      color: #e0e0e0;
+      padding: 20px;
+    }
+
+    /* animated floating orbs behind the card */
+    body::before,
+    body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(100px);
+      z-index: 0;
+      animation: float 8s ease-in-out infinite alternate;
+    }
+    body::before {
+      width: 400px;
+      height: 400px;
+      background: rgba(99, 102, 241, 0.35);
+      top: -80px;
+      left: -100px;
+    }
+    body::after {
+      width: 350px;
+      height: 350px;
+      background: rgba(236, 72, 153, 0.3);
+      bottom: -60px;
+      right: -80px;
+      animation-delay: 2s;
+    }
+    @keyframes float {
+      to { transform: translate(60px, 40px) scale(1.1); }
+    }
+
+    .card {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 440px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-radius: 20px;
+      padding: 36px 32px;
+      box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      animation: cardIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(30px) scale(0.96); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #6366f1, #ec4899);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: #fff;
+      font-weight: 700;
+    }
+    .logo-text {
+      font-size: 22px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #a5b4fc, #f9a8d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    h2 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #f1f1f1;
+    }
+    .subtitle {
+      font-size: 13px;
+      color: #9ca3af;
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    label {
+      display: block;
+      margin-top: 16px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #c4b5fd;
+    }
+    input {
+      width: 100%;
+      padding: 11px 14px;
+      margin-top: 6px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      color: #f1f1f1;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.25s, box-shadow 0.25s;
+    }
+    input:focus {
+      border-color: #818cf8;
+      box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.25);
+    }
+
+    .btn-pay {
+      margin-top: 28px;
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      font-family: 'Inter', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+      cursor: pointer;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7);
+      background-size: 200% 200%;
+      animation: shimmer 3s ease-in-out infinite;
+      box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+      transition: transform 0.15s, box-shadow 0.25s;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-pay::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.15) 50%, transparent 70%);
+      transform: translateX(-100%);
+      transition: transform 0.5s;
+    }
+    .btn-pay:hover::after {
+      transform: translateX(100%);
+    }
+    .btn-pay:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 28px rgba(99, 102, 241, 0.55);
+    }
+    .btn-pay:active {
+      transform: translateY(0);
+    }
+    .btn-pay:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    @keyframes shimmer {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+
+    /* spinner inside the button */
+    .spinner {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* step timeline */
+    .timeline {
+      margin-top: 20px;
+      padding: 0;
+      list-style: none;
+    }
+    .timeline li {
+      position: relative;
+      padding: 8px 0 8px 28px;
+      font-size: 13px;
+      color: #9ca3af;
+      transition: color 0.3s;
+    }
+    .timeline li::before {
+      content: '';
+      position: absolute;
+      left: 7px;
+      top: 12px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 2px solid #4b5563;
+      background: transparent;
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .timeline li:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      left: 11px;
+      top: 24px;
+      width: 2px;
+      height: calc(100% - 8px);
+      background: #374151;
+    }
+    .timeline li.active {
+      color: #c4b5fd;
+    }
+    .timeline li.active::before {
+      border-color: #818cf8;
+      background: #818cf8;
+      box-shadow: 0 0 8px rgba(129, 140, 248, 0.5);
+    }
+    .timeline li.done {
+      color: #6ee7b7;
+    }
+    .timeline li.done::before {
+      border-color: #34d399;
+      background: #34d399;
+    }
+    .timeline li.error {
+      color: #fca5a5;
+    }
+    .timeline li.error::before {
+      border-color: #f87171;
+      background: #f87171;
+    }
+
+    /* result box */
+    #result {
+      margin-top: 20px;
+      padding: 14px 16px;
+      border-radius: 12px;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      display: none;
+      animation: fadeIn 0.4s ease;
+      line-height: 1.5;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .success {
+      background: rgba(52, 211, 153, 0.12);
+      border: 1px solid rgba(52, 211, 153, 0.3);
+      color: #6ee7b7;
+      display: block !important;
+    }
+    .failure {
+      background: rgba(248, 113, 113, 0.12);
+      border: 1px solid rgba(248, 113, 113, 0.3);
+      color: #fca5a5;
+      display: block !important;
+    }
+
+    .note {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 20px;
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      line-height: 1.6;
+    }
+    .note strong {
+      color: #9ca3af;
+    }
+    .note code {
+      background: rgba(255, 255, 255, 0.08);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+
+    /* seed cart section */
+    .divider {
+      border: none;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      margin: 24px 0;
+    }
+    .seed-section h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #e0e0e0;
+      margin-bottom: 4px;
+    }
+    .seed-section p {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-bottom: 14px;
+    }
+    .btn-seed {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid rgba(52, 211, 153, 0.35);
+      border-radius: 10px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: #6ee7b7;
+      background: rgba(52, 211, 153, 0.08);
+      cursor: pointer;
+      transition: background 0.25s, border-color 0.25s, transform 0.15s;
+    }
+    .btn-seed:hover {
+      background: rgba(52, 211, 153, 0.16);
+      border-color: rgba(52, 211, 153, 0.5);
+      transform: translateY(-1px);
+    }
+    .btn-seed:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    #seedResult {
+      margin-top: 10px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 12px;
+      display: none;
+      animation: fadeIn 0.4s ease;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+      <span class="logo-text">E-ShopX</span>
+    </div>
+
+    <h2>One-Click Checkout Demo</h2>
+    <p class="subtitle">
+      Enter a user ID (must have items in cart). One click handles the entire flow:
+      checkout → reserve stock → pay → confirm order.
+    </p>
+
+    <label for="userId">User ID</label>
+    <input id="userId" value="user-001" placeholder="e.g. user-001" />
+
+    <label for="email">Email</label>
+    <input id="email" value="atharvaj1607@gmail.com" placeholder="e.g. your_email@example.com" />
+
+
+    <!-- Seed cart section -->
+    <hr class="divider" />
+    <div class="seed-section">
+      <h3>Step 0 — Seed the Cart</h3>
+      <p>Cart empty? Click below to fetch a product from the catalog and add it to this user's cart.</p>
+      <button class="btn-seed" id="seedBtn" onclick="seedCart()">🛒 Add Sample Product to Cart</button>
+      <div id="seedResult"></div>
+    </div>
+    <hr class="divider" />
+
+    <button class="btn-pay" id="payBtn" onclick="oneClickCheckout()">
+      🚀 Checkout &amp; Pay
+    </button>
+
+    <!-- step-by-step progress -->
+    <ul class="timeline" id="timeline" style="display:none;">
+      <li id="step-checkout">Creating order &amp; reserving stock…</li>
+      <li id="step-pay">Opening Razorpay payment widget…</li>
+      <li id="step-verify">Verifying payment &amp; confirming order…</li>
+    </ul>
+
+    <div id="result"></div>
+
+    <div class="note">
+      <strong>Test credentials:</strong><br />
+      Card: <code>4111 1111 1111 1111</code> · any future expiry · any CVV<br />
+      UPI: <code>success@razorpay</code>
+    </div>
+  </div>
+
+  <script>
+    const ORDER_SERVICE_URL = 'http://localhost:4005';
+    const CART_SERVICE_URL  = 'http://localhost:4004';
+    const CATALOG_SERVICE_URL = 'http://localhost:4002';
+    const btn = document.getElementById('payBtn');
+    const timeline = document.getElementById('timeline');
+    const resultDiv = document.getElementById('result');
+
+    function setStep(stepId, state) {
+      const el = document.getElementById(stepId);
+      el.className = state; // 'active' | 'done' | 'error' | ''
+    }
+
+    function resetUI() {
+      resultDiv.className = '';
+      resultDiv.style.display = 'none';
+      timeline.style.display = 'none';
+      ['step-checkout', 'step-pay', 'step-verify'].forEach(id => setStep(id, ''));
+    }
+
+    // ── Seed cart helper ─────────────────────────────────────────
+    async function seedCart() {
+      const userId = document.getElementById('userId').value.trim();
+      if (!userId) return alert('Please enter a User ID first');
+
+      const seedBtn = document.getElementById('seedBtn');
+      const seedResult = document.getElementById('seedResult');
+      seedBtn.disabled = true;
+      seedBtn.textContent = '⏳ Adding…';
+      seedResult.style.display = 'none';
+
+      try {
+        // 1. Fetch products from the catalog
+        const catRes = await fetch(`${CATALOG_SERVICE_URL}/products`);
+        if (!catRes.ok) throw new Error('Could not reach Catalog Service');
+        const products = await catRes.json();
+        if (!products.length) throw new Error('No products in catalog — run the seed script first');
+
+        // Pick the first product
+        const product = products[0];
+
+        // 2. Add it to the user's cart
+        const addRes = await fetch(`${CART_SERVICE_URL}/cart/${userId}/items`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productId: product.id, quantity: 1 }),
+        });
+        const addData = await addRes.json();
+        if (!addRes.ok) throw new Error(addData.error || 'Failed to add item to cart');
+
+        seedResult.className = 'success';
+        seedResult.style.display = 'block';
+        seedResult.textContent = `✅ Added "${product.name}" (₹${product.price}) to ${userId}'s cart`;
+      } catch (err) {
+        seedResult.className = 'failure';
+        seedResult.style.display = 'block';
+        seedResult.textContent = '❌ ' + err.message;
+      } finally {
+        seedBtn.disabled = false;
+        seedBtn.textContent = '🛒 Add Sample Product to Cart';
+      }
+    }
+
+    // ── One-click checkout ───────────────────────────────────────
+    async function oneClickCheckout() {
+      const userId = document.getElementById('userId').value.trim();
+      if (!userId) return alert('Please enter a User ID');
+
+      resetUI();
+      timeline.style.display = 'block';
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Processing…';
+
+      try {
+        // ── STEP 1: Call order-service /orders/checkout ──────────────
+        setStep('step-checkout', 'active');
+
+        const checkoutRes = await fetch(`${ORDER_SERVICE_URL}/orders/checkout`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId }),
+        });
+        const checkoutData = await checkoutRes.json();
+
+        if (!checkoutRes.ok) {
+          throw new Error(checkoutData.error || 'Checkout failed');
+        }
+
+        setStep('step-checkout', 'done');
+        const { order, payment } = checkoutData;
+
+        // ── STEP 2: Open Razorpay popup with the returned payment info ──
+        setStep('step-pay', 'active');
+
+        await new Promise((resolve, reject) => {
+          const options = {
+            key: payment.keyId,
+            amount: payment.amount,
+            currency: payment.currency,
+            name: 'E-ShopX',
+            description: `Order ${order.id}`,
+            order_id: payment.razorpayOrderId,
+            handler: function (response) {
+              // Razorpay success → resolve with the payment tokens
+              resolve(response);
+            },
+            modal: {
+              ondismiss: function () {
+                reject(new Error('Payment popup closed by user'));
+              },
+            },
+            theme: { color: '#6366f1' },
+          };
+
+          const rzp = new Razorpay(options);
+          rzp.on('payment.failed', function (resp) {
+            reject(new Error(resp.error.description || 'Payment failed'));
+          });
+          rzp.open();
+        }).then(async (razorpayResponse) => {
+          // ── STEP 3: Verify payment & complete the order ─────────────
+          setStep('step-pay', 'done');
+          setStep('step-verify', 'active');
+
+          const completeRes = await fetch(
+            `${ORDER_SERVICE_URL}/orders/${order.id}/complete`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id: razorpayResponse.razorpay_order_id,
+                razorpay_payment_id: razorpayResponse.razorpay_payment_id,
+                razorpay_signature: razorpayResponse.razorpay_signature,
+                email: document.getElementById('email').value.trim()
+              }),
+            }
+          );
+          const completeData = await completeRes.json();
+
+          if (completeRes.ok) {
+            setStep('step-verify', 'done');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'success';
+            resultDiv.innerHTML = `
+              <strong>✅ Order confirmed successfully!</strong>
+              <p style="margin-top: 10px; font-weight: normal; font-size: 14px;">Your order ID is: <code>${completeData.order.id}</code></p>
+              <p style="margin-top: 10px; font-weight: normal; font-size: 14px;">Check your email for the confirmation details!</p>
+            `;
+          } else {
+            setStep('step-verify', 'error');
+            resultDiv.className = 'failure';
+            resultDiv.textContent =
+              '❌ Verification failed\n\n' + JSON.stringify(completeData, null, 2);
+          }
+        });
+      } catch (err) {
+        // mark the currently active step as error
+        ['step-checkout', 'step-pay', 'step-verify'].forEach(id => {
+          if (document.getElementById(id).className === 'active') {
+            setStep(id, 'error');
+          }
+        });
+        resultDiv.className = 'failure';
+        resultDiv.textContent = '❌ ' + err.message;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '🚀 Checkout &amp; Pay';
+      }
+    }
+  </script>
+</body>
+</html>

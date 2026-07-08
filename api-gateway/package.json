@@ -1,0 +1,21 @@
+{
+  "name": "api-gateway",
+  "version": "1.0.0",
+  "description": "API Gateway for Online Shopping System",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "nodemon server.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "http-proxy-middleware": "^2.0.6",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}

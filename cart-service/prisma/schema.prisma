@@ -1,0 +1,33 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// One cart per user. Items live in a separate table so quantities
+// can be updated individually without rewriting the whole cart.
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String     @unique
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  cartId    String
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId String
+  quantity  Int
+  // Price is snapshotted at add-to-cart time so the cart total doesn't
+  // silently change if Catalog Service updates the price later.
+  priceSnapshot Decimal @db.Decimal(10, 2)
+  addedAt   DateTime @default(now())
+
+  @@unique([cartId, productId])
+  @@index([cartId])
+}
