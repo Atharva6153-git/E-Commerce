@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 import toast from 'react-hot-toast';
 
 const loadRazorpayScript = () =>
@@ -34,35 +35,35 @@ const CheckoutPage = () => {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const { user } = useAuth();
+  const { items, loading: cartLoading, clearCartLocal, refreshCart } = useCart();
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (cartLoading) return;
+
     const loadCheckout = async () => {
       try {
-        const res = await api.get(`/cart/${user.id}`);
-        if (!res.data || res.data.items.length === 0) {
+        if (!items.length) {
           navigate('/cart');
           return;
         }
-        
-        const cartData = res.data.items;
-        // Fetch full product details from catalog for the items
+
         const productsRes = await api.get('/catalog/products');
         const allProducts = productsRes.data;
-        
-        const mergedItems = cartData.map(item => {
-          const productDetail = allProducts.find(p => p.id === item.productId);
+
+        const mergedItems = items.map((item) => {
+          const productDetail = allProducts.find((p) => p.id === item.productId);
           return {
             ...item,
-            product: productDetail || { 
-              id: item.productId, 
-              name: 'Unknown Product', 
+            product: productDetail || {
+              id: item.productId,
+              name: 'Unknown Product',
               price: item.priceSnapshot,
-              imageUrl: `https://picsum.photos/seed/${item.productId}/200/200`
-            }
+              imageUrl: `https://picsum.photos/seed/${item.productId}/200/200`,
+            },
           };
         });
-        
+
         setCartItems(mergedItems);
       } catch (err) {
         toast.error('Failed to load checkout details');
@@ -76,7 +77,7 @@ const CheckoutPage = () => {
     loadRazorpayScript().catch(() => {
       // Preload in background; handlePayment will retry if this fails
     });
-  }, [user.id, navigate]);
+  }, [items, cartLoading, navigate]);
 
   const subtotal = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
 
@@ -111,6 +112,8 @@ const CheckoutPage = () => {
               email: user.email,
             });
 
+            clearCartLocal();
+            await refreshCart({ silent: true });
             navigate(`/success?orderId=${order.id}`);
           } catch (err) {
             toast.error(err.response?.data?.error || err.response?.data?.message || 'Payment verification failed');
@@ -147,7 +150,7 @@ const CheckoutPage = () => {
     }
   };
 
-  if (loading) return <div className="text-center py-20">Loading...</div>;
+  if (loading || cartLoading) return <div className="text-center py-20">Loading...</div>;
 
   return (
     <div className="max-w-2xl mx-auto">

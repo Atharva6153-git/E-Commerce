@@ -2,80 +2,68 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Trash2, ShoppingBag } from 'lucide-react';
 import api from '../api';
-import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 import toast from 'react-hot-toast';
 
 const CartPage = () => {
+  const { items, loading, updateQuantity, removeItem } = useCart();
   const [cartItems, setCartItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
   const navigate = useNavigate();
 
-  const fetchCart = async () => {
-    setLoading(true);
-    try {
-      // 1. Fetch cart items
-      const cartRes = await api.get(`/cart/${user.id}`);
-      const cartData = cartRes.data?.items || [];
-      
-      // 2. Fetch full product details from catalog for the items in the cart
-      // (Since cart service only stores productId and priceSnapshot)
-      if (cartData.length > 0) {
+  useEffect(() => {
+    const mergeCartItems = async () => {
+      if (!items.length) {
+        setCartItems([]);
+        return;
+      }
+
+      try {
         const productsRes = await api.get('/catalog/products');
         const allProducts = productsRes.data;
-        
-        // Merge product details into cart items
-        const mergedItems = cartData.map(item => {
-          const productDetail = allProducts.find(p => p.id === item.productId);
+
+        const mergedItems = items.map((item) => {
+          const productDetail = allProducts.find((p) => p.id === item.productId);
           return {
             ...item,
-            product: productDetail || { 
-              id: item.productId, 
-              name: 'Unknown Product', 
+            product: productDetail || {
+              id: item.productId,
+              name: 'Unknown Product',
               price: item.priceSnapshot,
-              imageUrl: `https://picsum.photos/seed/${item.productId}/400/400`
-            }
+              imageUrl: `https://picsum.photos/seed/${item.productId}/400/400`,
+            },
           };
         });
         setCartItems(mergedItems);
-      } else {
-        setCartItems([]);
+      } catch (err) {
+        console.error(err);
+        toast.error('Failed to load product details');
       }
-    } catch (err) {
-      console.error(err);
-      toast.error('Failed to load cart');
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  useEffect(() => {
-    fetchCart();
-  }, [user.id]);
+    mergeCartItems();
+  }, [items]);
 
-  const updateQuantity = async (productId, newQuantity) => {
+  const handleUpdateQuantity = async (productId, newQuantity) => {
     if (newQuantity < 1) return;
     try {
-      await api.put(`/cart/${user.id}/items/${productId}`, {
-        quantity: newQuantity
-      });
-      fetchCart();
-    } catch (err) {
+      await updateQuantity(productId, newQuantity);
+    } catch {
       toast.error('Failed to update quantity');
     }
   };
 
-  const removeItem = async (productId) => {
+  const handleRemoveItem = async (productId) => {
     try {
-      await api.delete(`/cart/${user.id}/items/${productId}`);
+      await removeItem(productId);
       toast.success('Item removed');
-      fetchCart();
-    } catch (err) {
+    } catch {
       toast.error('Failed to remove item');
     }
   };
 
-  if (loading) return <div className="text-center py-20">Loading cart...</div>;
+  if (loading) {
+    return <div className="text-center py-20">Loading cart...</div>;
+  }
 
   if (cartItems.length === 0) {
     return (
@@ -90,14 +78,13 @@ const CartPage = () => {
     );
   }
 
-  const subtotal = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+  const subtotal = cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
 
   return (
     <div>
       <h1 className="text-3xl font-bold text-gray-900 mb-8">Shopping Cart</h1>
-      
+
       <div className="flex flex-col lg:flex-row gap-8">
-        {/* Cart Items List */}
         <div className="flex-grow">
           <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
             <ul className="divide-y divide-gray-200">
@@ -119,20 +106,20 @@ const CartPage = () => {
                     </div>
                     <div className="flex flex-1 items-end justify-between text-sm">
                       <div className="flex items-center border border-gray-300 rounded-md">
-                        <button 
-                          onClick={() => updateQuantity(item.productId, item.quantity - 1)}
+                        <button
+                          onClick={() => handleUpdateQuantity(item.productId, item.quantity - 1)}
                           className="px-3 py-1 text-gray-600 hover:bg-gray-100"
                         >-</button>
                         <span className="px-3 py-1 border-x border-gray-300">{item.quantity}</span>
-                        <button 
-                          onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                        <button
+                          onClick={() => handleUpdateQuantity(item.productId, item.quantity + 1)}
                           className="px-3 py-1 text-gray-600 hover:bg-gray-100"
                         >+</button>
                       </div>
                       <div className="flex">
                         <button
                           type="button"
-                          onClick={() => removeItem(item.productId)}
+                          onClick={() => handleRemoveItem(item.productId)}
                           className="font-medium text-red-600 hover:text-red-500 flex items-center space-x-1"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -147,7 +134,6 @@ const CartPage = () => {
           </div>
         </div>
 
-        {/* Order Summary */}
         <div className="lg:w-80">
           <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 sticky top-24">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Order summary</h2>

@@ -1,10 +1,17 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { CheckCircle } from 'lucide-react';
+import { useCart } from '../context/CartContext';
 
 const SuccessPage = () => {
   const [searchParams] = useSearchParams();
   const orderId = searchParams.get('orderId');
+  const { clearCartLocal, refreshCart } = useCart();
+
+  useEffect(() => {
+    clearCartLocal();
+    refreshCart({ silent: true });
+  }, [clearCartLocal, refreshCart]);
 
   return (
     <div className="max-w-md mx-auto mt-20 bg-white p-8 rounded-lg shadow-sm border border-gray-100 text-center">
@@ -13,14 +20,14 @@ const SuccessPage = () => {
       <p className="text-gray-600 mb-6">
         Thank you for your purchase. We have received your order and are getting it ready for shipment.
       </p>
-      
+
       {orderId && (
         <div className="bg-gray-50 rounded-md p-4 mb-8 text-left border border-gray-200">
           <p className="text-sm text-gray-500 font-medium">Order ID</p>
           <p className="text-gray-900 font-mono mt-1">{orderId}</p>
         </div>
       )}
-      
+
       <p className="text-sm text-gray-500 mb-8 font-medium">
         📧 We've sent a confirmation email with details to your registered email address.
       </p>

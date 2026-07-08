@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { CartProvider } from './context/CartContext';
 import Navbar from './components/Navbar';
 import SocketManager from './components/SocketManager';
 
@@ -69,10 +70,12 @@ const AppContent = () => {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <Toaster position="top-center" toastOptions={{ duration: 4000 }} />
-        <AppContent />
-      </Router>
+      <CartProvider>
+        <Router>
+          <Toaster position="top-center" toastOptions={{ duration: 4000 }} />
+          <AppContent />
+        </Router>
+      </CartProvider>
     </AuthProvider>
   );
 }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ShoppingCart } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 import toast from 'react-hot-toast';
 import { useNavigate, Link } from 'react-router-dom';
 
@@ -9,6 +10,7 @@ const HomePage = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const { addToCart } = useCart();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,13 +33,8 @@ const HomePage = () => {
     }
     
     try {
-      await api.post(`/cart/${user.id}/items`, {
-        productId,
-        quantity: 1
-      });
+      await addToCart(productId, 1);
       toast.success('Added to cart');
-      // Hacky way to trigger navbar update for now
-      window.dispatchEvent(new Event('cartUpdated')); 
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to add to cart');
     }

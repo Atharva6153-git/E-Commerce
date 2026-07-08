@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ShoppingCart, ArrowLeft, Loader2 } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 import toast from 'react-hot-toast';
 
 const ProductDetailsPage = () => {
@@ -11,6 +12,7 @@ const ProductDetailsPage = () => {
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const { user } = useAuth();
+  const { addToCart } = useCart();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -34,12 +36,8 @@ const ProductDetailsPage = () => {
     }
     
     try {
-      await api.post(`/cart/${user.id}/items`, {
-        productId: product.id,
-        quantity: quantity
-      });
+      await addToCart(product.id, quantity);
       toast.success('Added to cart');
-      window.dispatchEvent(new Event('cartUpdated')); 
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to add to cart');
     }
