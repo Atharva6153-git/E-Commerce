@@ -16,7 +16,10 @@ exports.checkout = async (req, res) => {
 
   let order;
   try {
+    console.log(`[Checkout] Starting checkout for user: ${userId}`);
     const cart = await getCart(userId);
+    console.log(`[Checkout] Cart fetched:`, cart);
+    
     if (!cart.items || cart.items.length === 0) {
       return res.status(400).json({ error: 'Cart is empty, nothing to checkout' });
     }
@@ -36,17 +39,23 @@ exports.checkout = async (req, res) => {
       },
       include: { items: true },
     });
+    console.log(`[Checkout] Order created:`, order.id);
 
     const reserveItems = cart.items.map((item) => ({ productId: item.productId, quantity: item.quantity }));
+    console.log(`[Checkout] Reserving stock for items:`, reserveItems);
 
     try {
-      await reserveStock(order.id, reserveItems);
+      const reserveResult = await reserveStock(order.id, reserveItems);
+      console.log(`[Checkout] Stock reserved successfully:`, reserveResult);
     } catch (err) {
+      console.error(`[Checkout] Stock reservation failed:`, err.message);
       await prisma.order.update({ where: { id: order.id }, data: { status: 'FAILED' } });
       return res.status(409).json({ error: `Order failed: ${err.message}`, orderId: order.id, status: 'FAILED' });
     }
 
+    console.log(`[Checkout] Creating payment order...`);
     const paymentOrder = await createPaymentOrder(order.id, cart.total);
+    console.log(`[Checkout] Payment order created:`, paymentOrder);
 
     order = await prisma.order.update({
       where: { id: order.id },
@@ -57,12 +66,12 @@ exports.checkout = async (req, res) => {
     res.status(201).json({
       message: 'Stock reserved, complete payment to confirm order',
       order,
-      payment: paymentOrder, // contains razorpayOrderId, amount, currency, keyId for the checkout widget
+      payment: paymentOrder,
     });
   } catch (err) {
-    console.error('Checkout error:', err);
+    console.error('[Checkout] Error:', err);
     if (order) {
-      await releaseStock(order.id).catch(() => { });
+      await releaseStock(order.id).catch((e) => console.error('[Checkout] Release stock failed:', e.message));
       await prisma.order.update({ where: { id: order.id }, data: { status: 'FAILED' } }).catch(() => { });
     }
     res.status(500).json({ error: err.message });
