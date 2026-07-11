@@ -1,5 +1,73 @@
 const CART_URL = process.env.CART_SERVICE_URL || 'http://localhost:4004';
 const INVENTORY_URL = process.env.INVENTORY_SERVICE_URL || 'http://localhost:4003';
+const PAYMENT_URL = process.env.PAYMENT_SERVICE_URL || 'http://localhost:4006';
+const NOTIFICATION_URL = process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:4007';
+const AUTH_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:4001';
+
+/**
+ * fetchWithRetry
+ * - Adds a timeout to every request (so a sleeping Render service doesn't hang forever)
+ * - Retries a few times with a short delay (handles Render free-tier cold starts)
+ * - Safely parses the response: if the server returns HTML or plain text
+ *   (like "Too Many Requests" or a Render error page) instead of JSON,
+ *   this throws a clear error instead of crashing on JSON.parse.
+ *
+ * @param {string} url
+ * @param {object} options - normal fetch options (method, headers, body)
+ * @param {object} config - { retries, timeoutMs, retryDelayMs }
+ */
+async function fetchWithRetry(url, options = {}, config = {}) {
+  const {
+    retries = 2,        // how many EXTRA attempts after the first try
+    timeoutMs = 10000,  // 10s timeout per attempt
+    retryDelayMs = 1500 // wait 1.5s between retries
+  } = config;
+
+  let lastError;
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const res = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(timer);
+
+      // Read the raw text first — never assume it's JSON
+      const rawText = await res.text();
+
+      let data;
+      try {
+        data = rawText ? JSON.parse(rawText) : {};
+      } catch (parseErr) {
+        // Server sent back HTML or plain text (cold start / rate-limit / crash page)
+        const preview = rawText.slice(0, 80).replace(/\s+/g, ' ');
+        throw new Error(
+          `Service at ${url} returned a non-JSON response (status ${res.status}): "${preview}..."`
+        );
+      }
+
+      if (!res.ok) {
+        throw new Error(data.error || `Request to ${url} failed with status ${res.status}`);
+      }
+
+      return data; // success
+    } catch (err) {
+      clearTimeout(timer);
+      lastError = err;
+
+      const isLastAttempt = attempt === retries;
+      if (isLastAttempt) break;
+
+      console.warn(
+        `[Order] Attempt ${attempt + 1} to ${url} failed (${err.message}). Retrying in ${retryDelayMs}ms...`
+      );
+      await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+    }
+  }
+
+  throw lastError;
+}
 
 async function getCart(userId) {
   const res = await fetch(`${CART_URL}/cart/${userId}`);
@@ -14,39 +82,28 @@ async function clearCart(userId) {
 }
 
 async function reserveStock(orderId, items) {
-  const res = await fetch(`${INVENTORY_URL}/reserve`, {
+  return fetchWithRetry(`${INVENTORY_URL}/reserve`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ orderId, items }),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Stock reservation failed');
-  return data;
 }
 
 async function confirmStock(orderId) {
-  const res = await fetch(`${INVENTORY_URL}/confirm`, {
+  return fetchWithRetry(`${INVENTORY_URL}/confirm`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ orderId }),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Stock confirmation failed');
-  return data;
 }
 
 async function releaseStock(orderId) {
-  const res = await fetch(`${INVENTORY_URL}/release`, {
+  return fetchWithRetry(`${INVENTORY_URL}/release`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ orderId }),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Stock release failed');
-  return data;
 }
-
-const PAYMENT_URL = process.env.PAYMENT_SERVICE_URL || 'http://localhost:4006';
 
 async function createPaymentOrder(orderId, amount) {
   const res = await fetch(`${PAYMENT_URL}/payment/create-order`, {
@@ -68,9 +125,6 @@ async function verifyPayment(razorpayFields) {
   const data = await res.json();
   return { ok: res.ok, data };
 }
-
-const NOTIFICATION_URL = process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:4007';
-const AUTH_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:4001';
 
 /**
  * Fetch the user's email from the Auth Service.
@@ -96,7 +150,6 @@ async function getUserEmail(userId) {
  */
 async function sendNotification(userId, type, data, email = null) {
   try {
-    // If no email provided, try fetching from Auth Service
     if (!email) {
       email = await getUserEmail(userId);
     }
