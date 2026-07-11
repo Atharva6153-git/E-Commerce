@@ -65,10 +65,18 @@ const HomePage = () => {
               Premium quality products at unbeatable prices. Shop the latest trends and exclusive collections.
             </p>
             <div className="flex flex-wrap gap-4">
-              <button className="bg-white text-brand-600 px-8 py-4 rounded-xl font-bold text-lg hover:bg-brand-50 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+              <button 
+                onClick={() => window.scrollTo({ top: 600, behavior: 'smooth' })}
+                className="bg-white text-brand-600 px-8 py-4 rounded-xl font-bold text-lg hover:bg-brand-50 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+              >
                 Shop Now
               </button>
-              <button className="bg-brand-700 bg-opacity-50 backdrop-blur-sm text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-opacity-70 transition-all border-2 border-white border-opacity-30">
+              <button 
+                onClick={() => {
+                  toast.success('Special deals coming soon! 🎉');
+                }}
+                className="bg-brand-700 bg-opacity-50 backdrop-blur-sm text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-opacity-70 transition-all border-2 border-white border-opacity-30"
+              >
                 View Deals
               </button>
             </div>
@@ -76,19 +84,19 @@ const HomePage = () => {
         </div>
         
         {/* Stats Bar */}
-        <div className="bg-white bg-opacity-10 backdrop-blur-md border-t border-white border-opacity-20">
-          <div className="grid grid-cols-3 divide-x divide-white divide-opacity-20">
-            <div className="px-6 py-4 text-center">
-              <p className="text-3xl font-bold text-white">{products.length}+</p>
-              <p className="text-brand-100 text-sm">Products</p>
+        <div className="bg-black bg-opacity-20 backdrop-blur-md border-t border-white border-opacity-30">
+          <div className="grid grid-cols-3 divide-x divide-white divide-opacity-30">
+            <div className="px-6 py-5 text-center">
+              <p className="text-3xl font-bold text-white drop-shadow-lg">{products.length}+</p>
+              <p className="text-white text-sm font-semibold mt-1 drop-shadow">Products</p>
             </div>
-            <div className="px-6 py-4 text-center">
-              <p className="text-3xl font-bold text-white">10K+</p>
-              <p className="text-brand-100 text-sm">Happy Customers</p>
+            <div className="px-6 py-5 text-center">
+              <p className="text-3xl font-bold text-white drop-shadow-lg">10K+</p>
+              <p className="text-white text-sm font-semibold mt-1 drop-shadow">Happy Customers</p>
             </div>
-            <div className="px-6 py-4 text-center">
-              <p className="text-3xl font-bold text-white">4.9★</p>
-              <p className="text-brand-100 text-sm">Rating</p>
+            <div className="px-6 py-5 text-center">
+              <p className="text-3xl font-bold text-white drop-shadow-lg">4.9★</p>
+              <p className="text-white text-sm font-semibold mt-1 drop-shadow">Rating</p>
             </div>
           </div>
         </div>
