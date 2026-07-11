@@ -7,8 +7,12 @@ const {
 
 // STEP 1: checkout -> reserve stock -> create Razorpay order, wait for payment
 exports.checkout = async (req, res) => {
-  const { userId } = req.body;
-  if (!userId) return res.status(400).json({ error: 'userId is required' });
+  // Get userId from headers (set by API Gateway from JWT token)
+  const userId = req.headers['x-user-id'] || req.body.userId;
+  
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
 
   let order;
   try {
@@ -56,6 +60,7 @@ exports.checkout = async (req, res) => {
       payment: paymentOrder, // contains razorpayOrderId, amount, currency, keyId for the checkout widget
     });
   } catch (err) {
+    console.error('Checkout error:', err);
     if (order) {
       await releaseStock(order.id).catch(() => { });
       await prisma.order.update({ where: { id: order.id }, data: { status: 'FAILED' } }).catch(() => { });

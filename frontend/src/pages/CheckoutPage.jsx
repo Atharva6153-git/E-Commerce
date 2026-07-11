@@ -87,7 +87,8 @@ const CheckoutPage = () => {
       await loadRazorpayScript();
 
       // 1. Initiate checkout (creates order, reserves stock, creates Razorpay order)
-      const checkoutRes = await api.post('/orders/checkout', { userId: String(user.id) });
+      // userId is automatically extracted from JWT token by API Gateway
+      const checkoutRes = await api.post('/orders/checkout', {});
       const { order, payment } = checkoutRes.data;
 
       if (!payment?.keyId || !payment?.razorpayOrderId) {
@@ -99,7 +100,7 @@ const CheckoutPage = () => {
         key: payment.keyId,
         amount: payment.amount,
         currency: payment.currency,
-        name: 'E-ShopX',
+        name: 'ShopHub',
         description: 'Order Checkout',
         order_id: payment.razorpayOrderId,
         handler: async function (response) {
@@ -145,7 +146,7 @@ const CheckoutPage = () => {
         err.message ||
         'Failed to initiate payment';
       toast.error(message);
-      console.error(err);
+      console.error('Checkout error:', err.response || err);
       setProcessing(false);
     }
   };

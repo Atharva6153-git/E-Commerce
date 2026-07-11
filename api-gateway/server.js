@@ -51,6 +51,12 @@ app.use(
 app.use(
   '/api/orders',
   verifyToken,
+  (req, res, next) => {
+    // Pass user info in headers for downstream services
+    req.headers['x-user-id'] = req.user.id;
+    req.headers['x-user-email'] = req.user.email;
+    next();
+  },
   createProxyMiddleware({
     target: process.env.ORDER_SERVICE_URL,
     changeOrigin: true,
