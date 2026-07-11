@@ -2,9 +2,8 @@ import axios from 'axios';
 
 // All frontend requests route through the API Gateway
 const api = axios.create({
-  baseURL: 'http://localhost:4000/api',
+  baseURL: 'https://eshopx-api-gateway.onrender.com/api',
 });
-
 // Interceptor to attach the JWT token to every request
 api.interceptors.request.use(
   (config) => {
