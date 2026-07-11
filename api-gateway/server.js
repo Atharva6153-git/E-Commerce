@@ -4,6 +4,18 @@ const cors = require('cors');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const verifyToken = require('./middleware/verifyToken');
 
+// --- CRASH PROTECTION ---
+// These catch errors that would otherwise crash the whole Node process
+// (e.g. a downstream service being down, unexpected promise rejection, etc.)
+// Without these, one bad request can take down the entire gateway.
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('UNHANDLED REJECTION at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT EXCEPTION:', err);
+});
+
 const app = express();
 app.use(cors());
 
@@ -95,6 +107,15 @@ app.use(
 // Later, other protected routes (cart, orders, etc.) will use this same pattern.
 app.get('/api/me', verifyToken, (req, res) => {
   res.json({ message: 'Token is valid, gateway verified you.', user: req.user });
+});
+
+// --- CRASH PROTECTION ---
+// Catch-all error handler — must be defined AFTER all routes.
+// If any route/middleware calls next(err) or throws synchronously,
+// this sends a clean JSON error instead of crashing or returning HTML.
+app.use((err, req, res, next) => {
+  console.error('Unhandled error in api-gateway:', err);
+  res.status(500).json({ error: 'Something went wrong in api-gateway. Please try again.' });
 });
 
 const PORT = process.env.PORT || 4000;
