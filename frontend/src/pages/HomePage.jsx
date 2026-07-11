@@ -10,7 +10,7 @@ const HomePage = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
-  const { addToCart } = useCart();
+  const { addToCart: addItemToCart } = useCart();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -25,7 +25,7 @@ const HomePage = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  const addToCart = async (productId) => {
+  const handleAddToCart = async (productId) => {
     if (!user) {
       toast('Please log in to add items to cart');
       navigate('/login');
@@ -33,7 +33,7 @@ const HomePage = () => {
     }
     
     try {
-      await addToCart(productId, 1);
+      await addItemToCart(productId, 1);
       toast.success('Added to cart');
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to add to cart');
@@ -71,7 +71,7 @@ const HomePage = () => {
               <div className="mt-4 flex items-center justify-between">
                 <span className="text-xl font-bold text-gray-900">₹{product.price}</span>
                 <button
-                  onClick={() => addToCart(product.id)}
+                  onClick={() => handleAddToCart(product.id)}
                   className="flex items-center justify-center p-2 rounded-full bg-brand-50 text-brand-600 hover:bg-brand-100 transition-colors"
                   title="Add to cart"
                 >

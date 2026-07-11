@@ -1,4 +1,4 @@
-require('dotenv').config();
+﻿require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const http = require('http');
@@ -25,6 +25,7 @@ app.use('/notifications', notificationRoutes);
 // Create HTTP server for both Express and Socket.IO
 const server = http.createServer(app);
 const io = new Server(server, {
+  path: '/notifications/socket.io',
   cors: { origin: '*' },
 });
 
@@ -36,6 +37,6 @@ const PORT = process.env.PORT || 4007;
 // Initialize mailer, then start the server
 initMailer().then(() => {
   server.listen(PORT, () => {
-    console.log(`🔔 Notification Service running on port ${PORT}`);
+    console.log(`ðŸ”” Notification Service running on port ${PORT}`);
   });
 });

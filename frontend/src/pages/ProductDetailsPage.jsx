@@ -12,7 +12,7 @@ const ProductDetailsPage = () => {
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const { user } = useAuth();
-  const { addToCart } = useCart();
+  const { addToCart: addItemToCart } = useCart();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,15 +28,15 @@ const ProductDetailsPage = () => {
       .finally(() => setLoading(false));
   }, [id, navigate]);
 
-  const addToCart = async () => {
+  const handleAddToCart = async () => {
     if (!user) {
       toast('Please log in to add items to cart');
       navigate('/login');
       return;
     }
-    
+
     try {
-      await addToCart(product.id, quantity);
+      await addItemToCart(product.id, quantity);
       toast.success('Added to cart');
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to add to cart');
@@ -55,8 +55,8 @@ const ProductDetailsPage = () => {
 
   return (
     <div className="max-w-6xl mx-auto py-8">
-      <button 
-        onClick={() => navigate(-1)} 
+      <button
+        onClick={() => navigate(-1)}
         className="flex items-center text-gray-600 hover:text-brand-600 mb-8 transition-colors"
       >
         <ArrowLeft className="h-4 w-4 mr-2" />
@@ -78,7 +78,7 @@ const ProductDetailsPage = () => {
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">{product.name}</h1>
             <p className="text-2xl font-semibold text-brand-600 mb-6">₹{product.price}</p>
-            
+
             <div className="prose prose-sm text-gray-600 mb-8">
               <h3 className="text-lg font-medium text-gray-900 mb-2">Description</h3>
               <p className="leading-relaxed">
@@ -91,12 +91,12 @@ const ProductDetailsPage = () => {
             <div className="flex items-center mb-6">
               <span className="mr-4 text-gray-700 font-medium">Quantity:</span>
               <div className="flex items-center border border-gray-300 rounded-md bg-white">
-                <button 
+                <button
                   onClick={() => setQuantity(q => Math.max(1, q - 1))}
                   className="px-4 py-2 text-gray-600 hover:bg-gray-50 hover:text-brand-600 transition-colors"
                 >-</button>
                 <span className="px-6 py-2 border-x border-gray-300 font-medium">{quantity}</span>
-                <button 
+                <button
                   onClick={() => setQuantity(q => q + 1)}
                   className="px-4 py-2 text-gray-600 hover:bg-gray-50 hover:text-brand-600 transition-colors"
                 >+</button>
@@ -105,7 +105,7 @@ const ProductDetailsPage = () => {
 
             <div className="flex gap-4">
               <button
-                onClick={addToCart}
+                onClick={handleAddToCart}
                 className="flex-1 flex items-center justify-center py-4 px-6 rounded-lg text-white bg-brand-600 hover:bg-brand-700 font-medium shadow-sm transition-colors focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
               >
                 <ShoppingCart className="h-5 w-5 mr-2" />

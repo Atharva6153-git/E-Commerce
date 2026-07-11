@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Socket.IO connection manager.
  * Maps userId -> Set of sockets, so users can connect from multiple tabs.
  */
@@ -13,7 +13,7 @@ function initSocket(io) {
         userSockets.set(userId, new Set());
       }
       userSockets.get(userId).add(socket);
-      console.log(`🔌 Socket connected: ${userId} (${userSockets.get(userId).size} tabs)`);
+      console.log(`Socket connected: ${userId} (${userSockets.get(userId).size} tabs)`);
     }
 
     socket.on('disconnect', () => {
@@ -22,12 +22,12 @@ function initSocket(io) {
         if (userSockets.get(userId).size === 0) {
           userSockets.delete(userId);
         }
-        console.log(`🔌 Socket disconnected: ${userId}`);
+        console.log(`Socket disconnected: ${userId}`);
       }
     });
   });
 
-  console.log('🔌 Socket.IO ready for real-time notifications');
+  console.log('Socket.IO ready for real-time notifications');
 }
 
 /**
@@ -39,10 +39,10 @@ function pushToUser(userId, notification) {
     for (const socket of sockets) {
       socket.emit('notification', notification);
     }
-    console.log(`🔔 Pushed notification to ${userId} (${sockets.size} sockets)`);
+    console.log(`Pushed notification to ${userId} (${sockets.size} sockets)`);
     return true;
   }
-  console.log(`🔔 User ${userId} not connected, notification saved to DB only`);
+  console.log(`User ${userId} not connected, notification saved to DB only`);
   return false;
 }
 
