@@ -12,4 +12,26 @@ app.get('/health', (req, res) => res.json({ status: 'ok', service: 'payment' }))
 app.use('/payment', paymentRoutes);
 
 const PORT = process.env.PORT || 4006;
-app.listen(PORT, () => console.log(`Payment Service running on port ${PORT}`));
+
+// Start server
+const server = app.listen(PORT, () => {
+  console.log(`Payment Service running on port ${PORT}`);
+});
+
+// Handle server errors
+server.on('error', (error) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use`);
+    process.exit(1);
+  } else {
+    console.error('Server error:', error);
+  }
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM signal received: closing HTTP server');
+  server.close(() => {
+    console.log('HTTP server closed');
+  });
+});

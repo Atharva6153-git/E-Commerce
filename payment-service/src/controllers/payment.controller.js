@@ -2,12 +2,24 @@ const { PrismaClient } = require('@prisma/client');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  log: ['error', 'warn'],
+});
+
+// Test database connection on startup
+prisma.$connect()
+  .then(() => console.log('Payment Service: Database connected'))
+  .catch((err) => {
+    console.error('Payment Service: Database connection failed:', err.message);
+    console.warn('Payment Service: Will retry connection on first request');
+  });
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
+
+console.log('Payment Service: Razorpay initialized with key:', process.env.RAZORPAY_KEY_ID ? 'Present' : 'Missing');
 
 /**
  * CREATE ORDER
