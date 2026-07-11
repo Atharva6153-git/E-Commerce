@@ -1,0 +1,205 @@
+version: '3.8'
+
+services:
+  # Databases
+  auth-db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${AUTH_DB_NAME:-auth_db}
+      POSTGRES_USER: ${AUTH_DB_USER:-admin}
+      POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD:-admin123}
+    volumes:
+      - auth_data_prod:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${AUTH_DB_USER:-admin}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  catalog-db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${CATALOG_DB_NAME:-catalog_db}
+      POSTGRES_USER: ${CATALOG_DB_USER:-admin}
+      POSTGRES_PASSWORD: ${CATALOG_DB_PASSWORD:-admin123}
+    volumes:
+      - catalog_data_prod:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  inventory-db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${INVENTORY_DB_NAME:-inventory_db}
+      POSTGRES_USER: ${INVENTORY_DB_USER:-admin}
+      POSTGRES_PASSWORD: ${INVENTORY_DB_PASSWORD:-admin123}
+    volumes:
+      - inventory_data_prod:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  cart-db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${CART_DB_NAME:-cart_db}
+      POSTGRES_USER: ${CART_DB_USER:-admin}
+      POSTGRES_PASSWORD: ${CART_DB_PASSWORD:-admin123}
+    volumes:
+      - cart_data_prod:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  order-db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${ORDER_DB_NAME:-order_db}
+      POSTGRES_USER: ${ORDER_DB_USER:-admin}
+      POSTGRES_PASSWORD: ${ORDER_DB_PASSWORD:-admin123}
+    volumes:
+      - order_data_prod:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  payment-db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${PAYMENT_DB_NAME:-payment_db}
+      POSTGRES_USER: ${PAYMENT_DB_USER:-admin}
+      POSTGRES_PASSWORD: ${PAYMENT_DB_PASSWORD:-admin123}
+    volumes:
+      - payment_data_prod:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  notification-db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${NOTIFICATION_DB_NAME:-notification_db}
+      POSTGRES_USER: ${NOTIFICATION_DB_USER:-admin}
+      POSTGRES_PASSWORD: ${NOTIFICATION_DB_PASSWORD:-admin123}
+    volumes:
+      - notification_data_prod:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # Microservices
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "${API_GATEWAY_PORT:-4000}:4000"
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+    env_file:
+      - ./api-gateway/.env
+    restart: unless-stopped
+    depends_on:
+      - auth-service
+      - catalog-service
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=production
+      - PORT=4001
+    env_file:
+      - ./auth-service/.env
+    restart: unless-stopped
+    depends_on:
+      auth-db:
+        condition: service_healthy
+
+  catalog-service:
+    build:
+      context: ./catalog-service
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=production
+      - PORT=4002
+    env_file:
+      - ./catalog-service/.env
+    restart: unless-stopped
+    depends_on:
+      - catalog-db
+
+  inventory-service:
+    build:
+      context: ./inventory-service
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=production
+      - PORT=4003
+    env_file:
+      - ./inventory-service/.env
+    restart: unless-stopped
+    depends_on:
+      - inventory-db
+
+  cart-service:
+    build:
+      context: ./cart-service
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=production
+      - PORT=4004
+    env_file:
+      - ./cart-service/.env
+    restart: unless-stopped
+    depends_on:
+      - cart-db
+
+  order-service:
+    build:
+      context: ./order-service
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=production
+      - PORT=4005
+    env_file:
+      - ./order-service/.env
+    restart: unless-stopped
+    depends_on:
+      - order-db
+
+  payment-service:
+    build:
+      context: ./payment-service
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=production
+      - PORT=4006
+    env_file:
+      - ./payment-service/.env
+    restart: unless-stopped
+    depends_on:
+      - payment-db
+
+  notification-service:
+    build:
+      context: ./notification-service
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=production
+      - PORT=4007
+    env_file:
+      - ./notification-service/.env
+    restart: unless-stopped
+    depends_on:
+      - notification-db
+
+volumes:
+  auth_data_prod:
+  catalog_data_prod:
+  inventory_data_prod:
+  cart_data_prod:
+  order_data_prod:
+  payment_data_prod:
+  notification_data_prod:
+
+networks:
+  default:
+    name: shophub_network
