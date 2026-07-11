@@ -1,0 +1,82 @@
+{
+  "name": "Low Stock Alert Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "hours", "hoursInterval": 6 }]
+        }
+      },
+      "name": "Schedule Every 6 Hours",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:4003/stock/check-low",
+        "method": "GET",
+        "options": {}
+      },
+      "name": "Check Inventory Levels",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json.totalStock}}",
+              "operation": "smaller",
+              "value2": 10
+            }
+          ]
+        }
+      },
+      "name": "Is Stock Low?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Prepare alert data\nconst product = items[0].json;\n\nreturn [\n  {\n    json: {\n      productId: product.productId,\n      productName: product.productName,\n      currentStock: product.totalStock,\n      threshold: 10,\n      alertLevel: product.totalStock < 5 ? 'CRITICAL' : 'WARNING',\n      message: `Stock for ${product.productName} is low: ${product.totalStock} units remaining`\n    }\n  }\n];"
+      },
+      "name": "Prepare Alert",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [850, 200]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:4007/notifications/send",
+        "method": "POST",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"userId\": \"admin\",\n  \"type\": \"LOW_STOCK_ALERT\",\n  \"email\": \"admin@shophub.com\",\n  \"productId\": \"{{$json.productId}}\",\n  \"productName\": \"{{$json.productName}}\",\n  \"currentStock\": {{$json.currentStock}},\n  \"alertLevel\": \"{{$json.alertLevel}}\"\n}"
+      },
+      "name": "Send Alert to Admin",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [1050, 200]
+    }
+  ],
+  "connections": {
+    "Schedule Every 6 Hours": {
+      "main": [[{ "node": "Check Inventory Levels", "type": "main", "index": 0 }]]
+    },
+    "Check Inventory Levels": {
+      "main": [[{ "node": "Is Stock Low?", "type": "main", "index": 0 }]]
+    },
+    "Is Stock Low?": {
+      "main": [
+        [{ "node": "Prepare Alert", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Prepare Alert": {
+      "main": [[{ "node": "Send Alert to Admin", "type": "main", "index": 0 }]]
+    }
+  }
+}

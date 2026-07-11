@@ -77,6 +77,50 @@ services:
     volumes:
       - notification_data:/var/lib/postgresql/data
 
+  n8n-db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: n8n_db
+      POSTGRES_USER: n8n_user
+      POSTGRES_PASSWORD: n8n_password
+    ports:
+      - "5440:5432"
+    volumes:
+      - n8n_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U n8n_user -d n8n_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=n8n-db
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n_db
+      - DB_POSTGRESDB_USER=n8n_user
+      - DB_POSTGRESDB_PASSWORD=n8n_password
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=admin123
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678/
+      - GENERIC_TIMEZONE=Asia/Kolkata
+      - N8N_ENCRYPTION_KEY=test_encryption_key_2024
+    volumes:
+      - n8n_storage:/home/node/.n8n
+    depends_on:
+      n8n-db:
+        condition: service_healthy
+
 volumes:
   auth_data:
   catalog_data:
@@ -85,4 +129,6 @@ volumes:
   order_data:
   payment_data:
   notification_data:
+  n8n_data:
+  n8n_storage:
 

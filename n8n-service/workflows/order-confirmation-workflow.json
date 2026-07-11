@@ -1,0 +1,60 @@
+{
+  "name": "Order Confirmation Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "order-created",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "name": "Webhook - Order Created",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "order-created-webhook"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Extract order details\nconst orderData = items[0].json;\n\nreturn [\n  {\n    json: {\n      orderId: orderData.orderId,\n      userId: orderData.userId,\n      totalAmount: orderData.totalAmount,\n      items: orderData.items,\n      customerEmail: orderData.email,\n      orderDate: new Date().toISOString()\n    }\n  }\n];"
+      },
+      "name": "Process Order Data",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "url": "=http://localhost:4007/notifications/send",
+        "method": "POST",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "={\n  \"userId\": \"{{$json.userId}}\",\n  \"type\": \"ORDER_CONFIRMED\",\n  \"email\": \"{{$json.customerEmail}}\",\n  \"orderId\": \"{{$json.orderId}}\",\n  \"amount\": \"{{$json.totalAmount}}\",\n  \"itemCount\": {{$json.items.length}}\n}"
+      },
+      "name": "Send Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Log successful notification\nconsole.log('Order confirmation sent:', items[0].json);\nreturn items;"
+      },
+      "name": "Log Success",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [850, 300]
+    }
+  ],
+  "connections": {
+    "Webhook - Order Created": {
+      "main": [[{ "node": "Process Order Data", "type": "main", "index": 0 }]]
+    },
+    "Process Order Data": {
+      "main": [[{ "node": "Send Notification", "type": "main", "index": 0 }]]
+    },
+    "Send Notification": {
+      "main": [[{ "node": "Log Success", "type": "main", "index": 0 }]]
+    }
+  }
+}
