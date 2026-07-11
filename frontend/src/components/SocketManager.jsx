@@ -12,7 +12,7 @@ const SocketManager = () => {
     const token = localStorage.getItem('eshopx_token');
     if (!token) return;
 
-    const socket = io('http://localhost:4000', {
+    const socket = io('https://eshopx-api-gateway.onrender.com', {
       path: '/api/notifications/socket.io',
       query: { userId: user.id, token }
     });
