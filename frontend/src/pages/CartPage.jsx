@@ -116,6 +116,9 @@ const CartPage = () => {
                         src={item.product.imageUrl || `https://picsum.photos/seed/${item.product.id}/400/400`}
                         alt={item.product.name}
                         className="w-32 h-32 object-cover rounded-xl shadow-md border border-gray-200"
+                        onError={(e) => {
+                          e.target.src = `https://picsum.photos/seed/${item.product.id}/400/400`;
+                        }}
                       />
                     </div>
                     

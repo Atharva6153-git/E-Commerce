@@ -72,6 +72,9 @@ const ProductDetailsPage = () => {
                 src={product.imageUrl || `https://picsum.photos/seed/${product.id}/600/600`}
                 alt={product.name}
                 className="w-full h-auto object-contain rounded-xl shadow-2xl"
+                onError={(e) => {
+                  e.target.src = `https://picsum.photos/seed/${product.id}/600/600`;
+                }}
               />
               <div className="absolute top-4 left-4 bg-brand-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg">
                 Premium Quality

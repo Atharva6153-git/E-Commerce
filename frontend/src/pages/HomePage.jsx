@@ -126,6 +126,9 @@ const HomePage = () => {
                   src={product.imageUrl || `https://picsum.photos/seed/${product.id}/400/400`}
                   alt={product.name}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  onError={(e) => {
+                    e.target.src = `https://picsum.photos/seed/${product.id}/400/400`;
+                  }}
                 />
                 <div className="absolute top-3 right-3 bg-brand-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
                   NEW
