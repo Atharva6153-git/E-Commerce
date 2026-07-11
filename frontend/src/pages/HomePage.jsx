@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, Star, TrendingUp, Zap } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -41,43 +41,118 @@ const HomePage = () => {
   };
 
   if (loading) {
-    return <div className="text-center py-20">Loading products...</div>;
+    return (
+      <div className="flex justify-center items-center py-40">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-brand-600"></div>
+      </div>
+    );
   }
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Featured Products</h1>
-        <p className="mt-2 text-gray-600">Discover our latest collection of premium items.</p>
+      {/* Hero Section */}
+      <div className="bg-gradient-to-br from-brand-600 via-brand-500 to-purple-600 rounded-2xl shadow-2xl mb-12 overflow-hidden">
+        <div className="px-8 py-16 md:px-16 md:py-20 text-white">
+          <div className="max-w-3xl">
+            <div className="flex items-center space-x-2 mb-4">
+              <Zap className="h-6 w-6 text-yellow-300" />
+              <span className="text-yellow-300 font-semibold uppercase tracking-wide text-sm">New Arrivals</span>
+            </div>
+            <h1 className="text-5xl md:text-6xl font-extrabold mb-6 leading-tight">
+              Discover Your Perfect Style
+            </h1>
+            <p className="text-xl md:text-2xl mb-8 text-brand-50 leading-relaxed">
+              Premium quality products at unbeatable prices. Shop the latest trends and exclusive collections.
+            </p>
+            <div className="flex flex-wrap gap-4">
+              <button className="bg-white text-brand-600 px-8 py-4 rounded-xl font-bold text-lg hover:bg-brand-50 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                Shop Now
+              </button>
+              <button className="bg-brand-700 bg-opacity-50 backdrop-blur-sm text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-opacity-70 transition-all border-2 border-white border-opacity-30">
+                View Deals
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        {/* Stats Bar */}
+        <div className="bg-white bg-opacity-10 backdrop-blur-md border-t border-white border-opacity-20">
+          <div className="grid grid-cols-3 divide-x divide-white divide-opacity-20">
+            <div className="px-6 py-4 text-center">
+              <p className="text-3xl font-bold text-white">{products.length}+</p>
+              <p className="text-brand-100 text-sm">Products</p>
+            </div>
+            <div className="px-6 py-4 text-center">
+              <p className="text-3xl font-bold text-white">10K+</p>
+              <p className="text-brand-100 text-sm">Happy Customers</p>
+            </div>
+            <div className="px-6 py-4 text-center">
+              <p className="text-3xl font-bold text-white">4.9★</p>
+              <p className="text-brand-100 text-sm">Rating</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section Header */}
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h2 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+            <TrendingUp className="h-8 w-8 text-brand-600" />
+            Trending Products
+          </h2>
+          <p className="mt-2 text-gray-600">Handpicked items just for you</p>
+        </div>
       </div>
       
+      {/* Products Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {products.map(product => (
-          <div key={product.id} className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
-            <Link to={`/product/${product.id}`} className="block group">
-              <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden bg-gray-200 xl:aspect-w-7 xl:aspect-h-8">
+          <div 
+            key={product.id} 
+            className="group bg-white rounded-xl shadow-md hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-brand-200 transform hover:-translate-y-2"
+          >
+            <Link to={`/product/${product.id}`} className="block relative">
+              <div className="relative overflow-hidden bg-gray-100 aspect-square">
                 <img
                   src={product.imageUrl || `https://picsum.photos/seed/${product.id}/400/400`}
                   alt={product.name}
-                  className="h-64 w-full object-cover object-center group-hover:opacity-75"
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                 />
+                <div className="absolute top-3 right-3 bg-brand-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+                  NEW
+                </div>
               </div>
             </Link>
-            <div className="p-4">
+            
+            <div className="p-5">
               <Link to={`/product/${product.id}`}>
-                <h3 className="text-lg font-medium text-gray-900 truncate hover:text-brand-600 transition-colors">{product.name}</h3>
+                <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-brand-600 transition-colors line-clamp-1">
+                  {product.name}
+                </h3>
               </Link>
-              <p className="mt-1 text-sm text-gray-500 h-10 overflow-hidden">{product.description}</p>
-              <div className="mt-4 flex items-center justify-between">
-                <span className="text-xl font-bold text-gray-900">₹{product.price}</span>
-                <button
-                  onClick={() => handleAddToCart(product.id)}
-                  className="flex items-center justify-center p-2 rounded-full bg-brand-50 text-brand-600 hover:bg-brand-100 transition-colors"
-                  title="Add to cart"
-                >
-                  <ShoppingCart className="h-5 w-5" />
-                </button>
+              
+              <p className="text-sm text-gray-600 mb-4 line-clamp-2 h-10">
+                {product.description}
+              </p>
+              
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <span className="text-2xl font-bold text-gray-900">₹{product.price}</span>
+                </div>
+                <div className="flex items-center text-yellow-500 text-sm">
+                  <Star className="h-4 w-4 fill-current" />
+                  <span className="ml-1 font-semibold">4.5</span>
+                </div>
               </div>
+              
+              <button
+                onClick={() => handleAddToCart(product.id)}
+                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-brand-600 to-brand-700 text-white py-3 rounded-lg font-semibold hover:from-brand-700 hover:to-brand-800 transition-all shadow-md hover:shadow-lg transform active:scale-95"
+              >
+                <ShoppingCart className="h-5 w-5" />
+                Add to Cart
+              </button>
             </div>
           </div>
         ))}
