@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@prisma/client": "^5.18.0",
+    "cors": "^2.8.6",
     "express": "^4.19.2",
     "razorpay": "^2.9.4"
   },
