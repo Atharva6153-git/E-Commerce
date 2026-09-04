@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ------------------------------------------------------------------
+  # Build & test every backend service in parallel (one job per service).
+  # Fails the build on any test or lint failure.
+  # ------------------------------------------------------------------
+  test:
+    name: Test / Lint (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - api-gateway
+          - auth-service
+          - catalog-service
+          - inventory-service
+          - cart-service
+          - order-service
+          - payment-service
+          - notification-service
+    defaults:
+      run:
+        working-directory: ${{ matrix.service }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ${{ matrix.service }}/package-lock.json
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests (if a test script exists)
+        run: |
+          if node -e "process.exit(require('./package.json').scripts && require('./package.json').scripts['test'] ? 0 : 1)"; then
+            npm test
+          else
+            echo "No test script defined for ${{ matrix.service }}; skipping."
+          fi
+
+      - name: Run ESLint (if configured)
+        run: |
+          if node -e "process.exit(require('fs').existsSync('.eslintrc') || require('fs').existsSync('.eslintrc.json') || require('fs').existsSync('.eslintrc.js') || require('fs').existsSync('.eslintrc.yml') || require('fs').existsSync('.eslintrc.yaml') || require('fs').existsSync('eslint.config.js') || require('fs').existsSync('eslint.config.mjs') ? 0 : 1)" \
+             && npm ls eslint >/dev/null 2>&1; then
+            npx eslint . --max-warnings=0
+          else
+            echo "No ESLint config found for ${{ matrix.service }}; skipping."
+          fi
+
+  # ------------------------------------------------------------------
+  # Deploy services to Render. Runs ONLY on merge to main and is gated
+  # on the CI test/lint job passing.
+  # ------------------------------------------------------------------
+  deploy:
+    name: Deploy to Render
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy backend services to Render
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        run: |
+          if [ -z "$RENDER_API_KEY" ]; then
+            echo "::error::RENDER_API_KEY secret is not set. Add it in repo settings to enable deployment."
+            exit 1
+          fi
+          # Trigger a deploy for each Render service. Add/remove IDs to match
+          # your Render dashboard. Identifiers can be a service ID, name, or URL.
+          for id in \
+            "${{ secrets.RENDER_SERVICE_ID_API_GATEWAY }}" \
+            "${{ secrets.RENDER_SERVICE_ID_AUTH }}" \
+            "${{ secrets.RENDER_SERVICE_ID_CATALOG }}" \
+            "${{ secrets.RENDER_SERVICE_ID_INVENTORY }}" \
+            "${{ secrets.RENDER_SERVICE_ID_CART }}" \
+            "${{ secrets.RENDER_SERVICE_ID_ORDER }}" \
+            "${{ secrets.RENDER_SERVICE_ID_PAYMENT }}" \
+            "${{ secrets.RENDER_SERVICE_ID_NOTIFICATION }}"; do
+            if [ -n "$id" ]; then
+              curl -sS -X POST \
+                -H "Authorization: Bearer ${RENDER_API_KEY}" \
+                -H "Accept: application/json" \
+                -H "Content-Type: application/json" \
+                -d "{}" \
+                "https://api.render.com/v1/services/$id/deploys" \
+                && echo "  -> triggered deploy for $id"
+            fi
+          done
