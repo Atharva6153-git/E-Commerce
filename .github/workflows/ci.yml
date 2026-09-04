@@ -125,7 +125,24 @@ jobs:
         run: npm install
 
       - name: Run tests
-        run: npm test
+        run: |
+          set +e
+          npm test > test.log 2>&1
+          rc=$?
+          set -e
+          if [ $rc -ne 0 ]; then
+            echo "Jest failed for order-service (exit $rc). Output tail:"
+            tail -n 60 test.log
+            exit $rc
+          fi
+      - name: Upload test log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: order-service-test-log
+          path: order-service/test.log
+          if-no-files-found: ignore
+          retention-days: 3
 
   # ------------------------------------------------------------------
   # Deploy services to Render. Runs ONLY on merge to main and is gated
