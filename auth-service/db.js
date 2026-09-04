@@ -22,9 +22,13 @@ pool.on('connect', () => {
   console.log(`Connected to auth_db (Postgres) [${isProduction ? 'Neon/production' : 'local Docker'}]`);
 });
 
+// --- CRASH PROTECTION ---
+// Previously this called process.exit(-1), which killed the whole service
+// whenever Neon's free-tier DB auto-suspended and dropped an idle connection.
+// Now we just log it — pg's Pool automatically creates a fresh connection
+// on the next query, so the service stays alive and self-heals.
 pool.on('error', (err) => {
-  console.error('Unexpected error on idle Postgres client', err);
-  process.exit(-1);
+  console.error('Unexpected error on idle Postgres client (pool will recover automatically):', err);
 });
 
 module.exports = pool;

@@ -3,8 +3,16 @@ const express = require('express');
 const cors = require('cors');
 const authRoutes = require('./routes/authRoutes');
 
-const app = express();
+// --- CRASH PROTECTION ---
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('UNHANDLED REJECTION at:', promise, 'reason:', reason);
+});
 
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT EXCEPTION:', err);
+});
+
+const app = express();
 app.use(cors());
 app.use(express.json());
 
@@ -14,6 +22,13 @@ app.get('/health', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+
+// --- CRASH PROTECTION ---
+// Catch-all error handler — must be defined AFTER all routes.
+app.use((err, req, res, next) => {
+  console.error('Unhandled error in auth-service:', err);
+  res.status(500).json({ error: 'Something went wrong in auth-service. Please try again.' });
+});
 
 const PORT = process.env.PORT || 4001;
 app.listen(PORT, () => {
