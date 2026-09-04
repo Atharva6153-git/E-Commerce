@@ -84,6 +84,41 @@ services:
     volumes:
       - redis_data:/data
 
+  # --- Integration test DBs (isolated from dev DBs above) ---
+  # Used by order-service Jest + Supertest saga tests. Wiped/re-seeded per run.
+  order-test-db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: order_test
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+    ports:
+      - "5447:5432"
+    volumes:
+      - order_test_data:/var/lib/postgresql/data
+
+  inventory-test-db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: inventory_test
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+    ports:
+      - "5448:5432"
+    volumes:
+      - inventory_test_data:/var/lib/postgresql/data
+
+  payment-test-db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: payment_test
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+    ports:
+      - "5449:5432"
+    volumes:
+      - payment_test_data:/var/lib/postgresql/data
+
 volumes:
   auth_data:
   catalog_data:
@@ -93,4 +128,7 @@ volumes:
   payment_data:
   notification_data:
   redis_data:
+  order_test_data:
+  inventory_test_data:
+  payment_test_data:
 
