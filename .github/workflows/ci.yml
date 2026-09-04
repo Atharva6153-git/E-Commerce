@@ -8,8 +8,8 @@ on:
 
 jobs:
   # ------------------------------------------------------------------
-  # Build & test every backend service in parallel (one job per service).
-  # Fails the build on any test or lint failure.
+  # Build & test the services that need no external infra in parallel
+  # (one job per service). Fails the build on any test or lint failure.
   # ------------------------------------------------------------------
   test:
     name: Test / Lint (${{ matrix.service }})
@@ -23,7 +23,6 @@ jobs:
           - catalog-service
           - inventory-service
           - cart-service
-          - order-service
           - payment-service
           - notification-service
     defaults:
@@ -61,14 +60,82 @@ jobs:
           fi
 
   # ------------------------------------------------------------------
+  # order-service's Jest suite needs the three test Postgres DBs
+  # (order/inventory/payment on hosts 5447/5448/5449), so it gets its
+  # own job with Postgres service containers. Runs in parallel with `test`.
+  # ------------------------------------------------------------------
+  test-order:
+    name: Test / Lint (order-service)
+    runs-on: ubuntu-latest
+    services:
+      order-test-db:
+        image: postgres:16
+        env:
+          POSTGRES_DB: order_test
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: admin123
+        ports:
+          - 5447:5432
+        options: >-
+          --health-cmd "pg_isready -U admin -d order_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      inventory-test-db:
+        image: postgres:16
+        env:
+          POSTGRES_DB: inventory_test
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: admin123
+        ports:
+          - 5448:5432
+        options: >-
+          --health-cmd "pg_isready -U admin -d inventory_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      payment-test-db:
+        image: postgres:16
+        env:
+          POSTGRES_DB: payment_test
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: admin123
+        ports:
+          - 5449:5432
+        options: >-
+          --health-cmd "pg_isready -U admin -d payment_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: order-service
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: order-service/package-lock.json
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: npm test
+
+  # ------------------------------------------------------------------
   # Deploy services to Render. Runs ONLY on merge to main and is gated
-  # on the CI test/lint job passing.
+  # on the CI test/lint jobs passing.
   # ------------------------------------------------------------------
   deploy:
     name: Deploy to Render
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: test
+    needs: [test, test-order]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
