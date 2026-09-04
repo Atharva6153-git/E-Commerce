@@ -1,4 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
+const { invalidateKeys } = require('../middleware/cache');
 const prisma = new PrismaClient();
 
 exports.getAllProducts = async (req, res) => {
@@ -41,6 +42,7 @@ exports.createProduct = async (req, res) => {
     const product = await prisma.product.create({
       data: { name, description, price, imageUrl, categoryId },
     });
+    await invalidateKeys('products:all*');
     res.status(201).json(product);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -53,6 +55,10 @@ exports.updateProduct = async (req, res) => {
       where: { id: req.params.id },
       data: req.body,
     });
+    await Promise.all([
+      invalidateKeys(`products:${req.params.id}`),
+      invalidateKeys('products:all*'),
+    ]);
     res.json(product);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -65,6 +71,10 @@ exports.deleteProduct = async (req, res) => {
       where: { id: req.params.id },
       data: { isActive: false },
     });
+    await Promise.all([
+      invalidateKeys(`products:${req.params.id}`),
+      invalidateKeys('products:all*'),
+    ]);
     res.json({ message: 'Product deactivated' });
   } catch (err) {
     res.status(400).json({ error: err.message });

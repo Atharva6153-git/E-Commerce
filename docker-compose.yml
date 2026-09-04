@@ -77,6 +77,13 @@ services:
     volumes:
       - notification_data:/var/lib/postgresql/data
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
 volumes:
   auth_data:
   catalog_data:
@@ -85,4 +92,5 @@ volumes:
   order_data:
   payment_data:
   notification_data:
+  redis_data:
 
