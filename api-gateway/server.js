@@ -3,6 +3,21 @@ const express = require('express');
 const cors = require('cors');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const verifyToken = require('./middleware/verifyToken');
+const {
+  publicLimiter,
+  userLimiter,
+  paymentLimiter,
+  rateLimitMiddleware,
+  ipKey,
+  userKey,
+} = require('./src/rateLimiters');
+
+// Per-IP limit for public routes
+const publicRateLimit = rateLimitMiddleware(publicLimiter, ipKey);
+// Per-user limit for authenticated routes
+const userRateLimit = rateLimitMiddleware(userLimiter, userKey);
+// Stricter per-user limit for payment routes
+const paymentRateLimit = rateLimitMiddleware(paymentLimiter, userKey);
 
 // --- CRASH PROTECTION ---
 // These catch errors that would otherwise crash the whole Node process
@@ -19,6 +34,11 @@ process.on('uncaughtException', (err) => {
 const app = express();
 app.use(cors());
 
+// The gateway runs behind nginx (or another reverse proxy) in production.
+// Without this, Express would read req.ip as the proxy's address (127.0.0.1)
+// for every client, collapsing per-IP rate limits into a single global bucket.
+app.set('trust proxy', 1);
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'api-gateway' });
@@ -29,6 +49,7 @@ app.get('/health', (req, res) => {
 // route is forwarded to Auth Service WITHOUT verifyToken.
 app.use(
   '/api/auth',
+  publicRateLimit,
   createProxyMiddleware({
     target: process.env.AUTH_SERVICE_URL,
     changeOrigin: true,
@@ -39,6 +60,7 @@ app.use(
 // Product browsing doesn't need a token, forwarded to Catalog Service.
 app.use(
   '/api/catalog',
+  publicRateLimit,
   createProxyMiddleware({
     target: process.env.CATALOG_SERVICE_URL,
     changeOrigin: true,
@@ -51,6 +73,7 @@ app.use(
 app.use(
   '/api/cart',
   verifyToken,
+  userRateLimit,
   createProxyMiddleware({
     target: process.env.CART_SERVICE_URL,
     changeOrigin: true,
@@ -63,6 +86,7 @@ app.use(
 app.use(
   '/api/orders',
   verifyToken,
+  userRateLimit,
   (req, res, next) => {
     // Pass user info in headers for downstream services
     req.headers['x-user-id'] = req.user.id;
@@ -77,10 +101,11 @@ app.use(
 );
 
 // --- PROTECTED ROUTE ---
-// Forward to Payment Service. Requires valid JWT.
+// Forward to Payment Service. Requires valid JWT. Stricter rate limit (5 req/min).
 app.use(
   '/api/payment',
   verifyToken,
+  paymentRateLimit,
   createProxyMiddleware({
     target: process.env.PAYMENT_SERVICE_URL,
     changeOrigin: true,
@@ -94,6 +119,7 @@ app.use(
 app.use(
   '/api/notifications',
   verifyToken,
+  userRateLimit,
   createProxyMiddleware({
     target: process.env.NOTIFICATION_SERVICE_URL,
     changeOrigin: true,
@@ -105,7 +131,7 @@ app.use(
 // --- PROTECTED TEST ROUTE ---
 // This proves the gateway can verify a JWT issued by Auth Service.
 // Later, other protected routes (cart, orders, etc.) will use this same pattern.
-app.get('/api/me', verifyToken, (req, res) => {
+app.get('/api/me', verifyToken, userRateLimit, (req, res) => {
   res.json({ message: 'Token is valid, gateway verified you.', user: req.user });
 });
 

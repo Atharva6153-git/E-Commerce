@@ -13,7 +13,9 @@
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "http-proxy-middleware": "^2.0.6",
-    "jsonwebtoken": "^9.0.2"
+    "ioredis": "^5.4.1",
+    "jsonwebtoken": "^9.0.2",
+    "rate-limiter-flexible": "^4.0.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.4"
